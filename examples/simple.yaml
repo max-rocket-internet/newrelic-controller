@@ -1,0 +1,11 @@
+apiVersion: newrelic.com/v1
+kind: NewRelicSetting
+metadata:
+  name: app1
+spec:
+  application:
+    name: my-app-in-new-relic
+    settings:
+      app_apdex_threshold: 0.85
+      end_user_apdex_threshold: 0.66
+      enable_real_user_monitoring: false

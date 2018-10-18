@@ -3,7 +3,7 @@ log_level: 'info'
 replicaCount: 1
 
 image:
-  repository: futurish/newrelic-controller
+  repository: k8scontrollers/newrelic
   tag: 0.1
   pullPolicy: IfNotPresent
 

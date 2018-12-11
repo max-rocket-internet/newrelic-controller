@@ -4,7 +4,7 @@ metadata:
   name: app1
 spec:
   application:
-    name: my-app-in-new-relic
+    name: my-app1-in-new-relic
     settings:
       app_apdex_threshold: 0.85
       end_user_apdex_threshold: 0.66

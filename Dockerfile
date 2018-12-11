@@ -6,6 +6,8 @@ RUN apk --update add --virtual build-dependencies gcc libressl-dev libffi-dev mu
   && pip install -r requirements.txt \
   && apk del build-dependencies
 
-COPY controller.py functions.py /
+COPY newrelic_api /newrelic_api
+
+Add controller.py functions.py /
 
 CMD ["python", "-u", "controller.py"]

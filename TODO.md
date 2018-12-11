@@ -1,7 +1,5 @@
 # To do
 
-- Reduce docker image size
-
-Features:
-
-- Support more than `spec['application']['settings']`, e.g. alert_policies etc
+- Reduce docker image size.
+- Handle `SIGTERM` signal.
+- Better logging to show the k8s resource name and object version in JSON fields.

@@ -1,0 +1,41 @@
+apiVersion: newrelic.com/v1
+kind: NewRelicSetting
+metadata:
+  name: app2
+spec:
+  application:
+    name: my-app2-in-new-relic
+    settings:
+      app_apdex_threshold: 0.85
+      end_user_apdex_threshold: 0.66
+      enable_real_user_monitoring: false
+    alerts_policies:
+      - name: my-app2-in-new-relic
+        incident_preference: PER_CONDITION
+        channels:
+          - 123456789
+        conditions:
+          - name: my-app2 apdex
+            enabled: true
+            type: apm_app_metric
+            condition_scope: application
+            metric: apdex
+            value_function: apdex_score
+            terms:
+              - duration: 5
+                operator: below
+                priority: critical
+                threshold: 0.85
+                time_function: all
+          - name: my-app2 error percentage
+            enabled: true
+            type: apm_app_metric
+            condition_scope: application
+            metric: error_percentage
+            value_function: percent
+            terms:
+              - duration: 5
+                operator: above
+                priority: critical
+                threshold: 1
+                time_function: all

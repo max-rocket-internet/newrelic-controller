@@ -25,7 +25,7 @@ spec:
       app_apdex_threshold: 0.85
 ```
 
-You can also add Alert Policies and Alert Conditions, for example APM metrics. Each `alerts_policies` item follows the schema show [here](https://rpm.newrelic.com/api/explore/alerts_policies/create) and can have multiple `conditions` with schema show [here](https://rpm.newrelic.com/api/explore/alerts_conditions/create) and `channels` that are just notification channel IDs.
+You can also add Alert Policies and Alert Conditions, for example APM metrics. Each `alerts_policies` item follows the schema shown [here](https://rpm.newrelic.com/api/explore/alerts_policies/create) and can have multiple `conditions` with schema shown [here](https://rpm.newrelic.com/api/explore/alerts_conditions/create) and `channels` that are just notification channel IDs.
 
 Here's a complete example:
 

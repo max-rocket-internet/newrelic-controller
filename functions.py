@@ -9,9 +9,6 @@ from newrelic_api import Applications, AlertsPolicies, AlertsConditions, AlertsP
 from newrelic_api.exceptions import NewRelicAPIServerException
 
 
-logger = logging.getLogger()
-
-
 def get_config():
     '''
     Gets the run time configuration from the environment
@@ -32,16 +29,38 @@ def get_config():
     return settings
 
 
+def parse_api_error(error):
+    '''
+    Returns a nicer from string from a new relic API error
+    '''
+    text = str(error)
+    return text.replace('{"error":{"title":"', '').replace('."}}', '')
+
+
+class K8sLoggingFilter(logging.Filter):
+    '''
+    A small filter to add add extra logging data if not present
+    '''
+    def filter(self, record):
+        if not hasattr(record, 'resource_name'):
+            record.resource_name = '-'
+        if not hasattr(record, 'new_relic_app'):
+            record.new_relic_app = '-'
+        return True
+
+
 def create_logger(log_level):
     '''
     Creates logging object
     '''
-    json_format = logging.Formatter('{"time":"%(asctime)s", "level":"%(levelname)s", "message":"%(message)s"}')
+    json_format = logging.Formatter('{"time":"%(asctime)s", "level":"%(levelname)s", "resource_name":"%(resource_name)s", "new_relic_app":"%(new_relic_app)s", "message":"%(message)s"}')
+    filter = K8sLoggingFilter()
     logger = logging.getLogger()
     stdout_handler = logging.StreamHandler()
     stdout_handler.setLevel(logging.DEBUG)
     stdout_handler.setFormatter(json_format)
     logger.addHandler(stdout_handler)
+    logger.addFilter(filter)
 
     if log_level == 'debug':
         logger.setLevel(logging.DEBUG)
@@ -68,7 +87,9 @@ def process_event(crds, obj, event_type):
     else:
         nr_app_name = k8s_resource_name
 
-    logger.debug('Processing event: {0}'.format(json.dumps(obj, indent=1)))
+    logger = logging.LoggerAdapter(logging.getLogger(), {'resource_name': k8s_resource_name, 'new_relic_app': nr_app_name})
+
+    logger.debug('Processing event: {0}'.format(json.dumps(obj)))
 
     if event_type == 'DELETED':
         if 'alerts_policies' in spec['application']:
@@ -103,7 +124,7 @@ def process_event(crds, obj, event_type):
                 try:
                     result = nr_alerts_policies.create(name=policy['name'], incident_preference=policy['incident_preference'])
                 except Exception as e:
-                    logger.info('Failed to create alerts policy for application {0}: {1}'.format(nr_app_name, e.message))
+                    logger.info('Failed to create alerts policy for application {0}: {1}'.format(nr_app_name, parse_api_error(e)))
                     return
                 else:
                     new_policy_id = result['policy']['id']
@@ -132,10 +153,12 @@ def process_event(crds, obj, event_type):
                         else:
                             logger.info('Created alerts condition {0} for application {1}'.format(data['name'], nr_app_name))
 
-        try:
-            nr_applications.update(id=nr_app_id, **spec['application']['settings'])
-        except Exception as e:
-            logger.error('Updating application {0} failed: {1}'.format(nr_app_name, e))
-            return
-        else:
-            logger.info('Update of application {0} with ID {1} completed'.format(nr_app_name, nr_app_id))
+        if 'settings' in spec['application']:
+            try:
+                nr_applications.update(id=nr_app_id, **spec['application']['settings'])
+            except Exception as e:
+                logger.error('Updating application {0} failed: {1}'.format(nr_app_name, e))
+            else:
+                logger.info('Update of application {0} with ID {1} completed'.format(nr_app_name, nr_app_id))
+
+        return

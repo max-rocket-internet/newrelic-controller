@@ -2,4 +2,4 @@
 
 - Reduce docker image size.
 - Handle `SIGTERM` signal.
-- Better logging to show the k8s resource name and object version in JSON fields.
+- Update existing alerts policies and conditions instead of always creating new ones

@@ -1,0 +1,30 @@
+apiVersion: newrelic.com/v1
+kind: NewRelicSetting
+metadata:
+  name: app3
+spec:
+  application:
+    name: my-app3-in-new-relic
+    alerts_policies:
+      - name: my-app3-in-new-relic
+        incident_preference: PER_CONDITION
+        channels:
+          - 123456789
+        conditions:
+          - name: my-app3 500 errors
+            enabled: true
+            type: nrql_query
+            nrql:
+              query: SELECT percentage(count(*), WHERE httpResponseCode >= 500 AND httpResponseCode <= 599 AND appName = 'my-app3') FROM Transaction
+              since_value: 3
+            condition_scope: application
+            value_function: single_value
+            ignore_overlap: true
+            expected_groups: 1
+            baseline_direction: upper_and_lower
+            terms:
+              - duration: 5
+                operator: above
+                priority: critical
+                threshold: 0.2
+                time_function: all

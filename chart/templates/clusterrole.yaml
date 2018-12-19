@@ -15,5 +15,5 @@ metadata:
 rules:
   - apiGroups: ["newrelic.com"]
     resources: ["newrelicsettings"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
 {{- end -}}

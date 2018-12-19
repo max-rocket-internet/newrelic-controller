@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import sys
 from kubernetes import client, watch
 from functions import get_config, process_event, create_logger
 
@@ -36,9 +37,9 @@ if __name__ == "__main__":
         except client.rest.ApiException as e:
             if e.status == 404:
                 logger.error('Custom Resource Definition not created in cluster')
-                break
+                sys.exit(1)
             else:
                 raise e
         except KeyboardInterrupt:
             logger.info('newrelic-controller exiting')
-            break
+            sys.exit(0)

@@ -4,7 +4,7 @@ replicaCount: 1
 
 image:
   repository: k8scontrollers/newrelic
-  tag: 0.3
+  tag: 0.4
   pullPolicy: IfNotPresent
 
 nameOverride: ""

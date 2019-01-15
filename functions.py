@@ -3,6 +3,7 @@
 import os
 import json
 import logging
+import re
 import logging.handlers
 from kubernetes import config
 from newrelic_api import Applications, AlertsPolicies, AlertsConditions, AlertsPolicyChannels
@@ -72,6 +73,26 @@ def create_logger(log_level):
     return logger
 
 
+def parse_too_old_failure(message):
+    '''
+    Parse an error from watch API when resource version is too old
+    '''
+    regex = r"too old resource version: .* \((.*)\)"
+
+    result = re.search(regex, message)
+    if result == None:
+        return None
+
+    match = result.group(1)
+    if match == None:
+        return None
+
+    try:
+        return int(match)
+    except:
+        return None
+
+
 def process_event(crds, obj, event_type):
     '''
     Processes events in order to set New Relic settings
@@ -93,11 +114,11 @@ def process_event(crds, obj, event_type):
 
     if event_type == 'DELETED':
         if 'alerts_policies' in spec['application']:
-            nr_alerts_policies = AlertsPolicies()
+            alerts_policies_api = AlertsPolicies()
             for policy in spec['application']['alerts_policies']:
-                policies = nr_alerts_policies.list(filter_name=policy['name'])
+                policies = alerts_policies_api.list(filter_name=policy['name'])
                 try:
-                    result = nr_alerts_policies.delete(policy_id=policies['policies'][0]['id'])
+                    result = alerts_policies_api.delete(policy_id=policies['policies'][0]['id'])
                 except NewRelicAPIServerException as e:
                     logger.error('Failed to delete alert policy {0}: {1}'.format(policy['name'], e.message))
                 except IndexError:
@@ -119,46 +140,76 @@ def process_event(crds, obj, event_type):
             logger.debug('Found application with id {0}'.format(nr_app_id))
 
         if 'alerts_policies' in spec['application']:
-            nr_alerts_policies = AlertsPolicies()
+            alerts_policies_api = AlertsPolicies()
+
             for policy in spec['application']['alerts_policies']:
+                policy_id = None
+
                 try:
-                    result = nr_alerts_policies.create(name=policy['name'], incident_preference=policy['incident_preference'])
+                    alerts_policies_list = alerts_policies_api.list(filter_name=policy['name'])
+                    policy_id = alerts_policies_list['policies'][0]['id']
+                except IndexError:
+                    logger.info('Alerts policy does not exist: {0}'.format(policy['name']))
                 except Exception as e:
-                    logger.info('Failed to create alerts policy for application {0}: {1}'.format(nr_app_name, parse_api_error(e)))
+                    logger.info('Failed to list alerts policies: {0}'.format(parse_api_error(e)))
                     return
                 else:
-                    new_policy_id = result['policy']['id']
+                    logger.info('Found existing alerts policy with ID: {0}'.format(policy_id))
+
+                if policy_id == None:
+                    try:
+                        result = alerts_policies_api.create(name=policy['name'], incident_preference=policy['incident_preference'])
+                        policy_id = result['policy']['id']
+                    except Exception as e:
+                        logger.info('Failed to create alerts policy: {0}'.format(parse_api_error(e)))
+                        return
 
                 if 'channels' in policy:
-                    alerts_policy_channels = AlertsPolicyChannels()
+                    alerts_policy_channels_api = AlertsPolicyChannels()
                     for channel_id in policy['channels']:
                         try:
-                            alerts_policy_channels.create(policy_id=new_policy_id, channel_id=channel_id)
+                            alerts_policy_channels_api.create(policy_id=policy_id, channel_id=channel_id)
                         except Exception as e:
-                            logger.error('Failed to create alerts policy channel {0} for application {1}: {2}'.format(channel_id, nr_app_name, e.message))
+                            logger.error('Failed to create alerts policy channel {0}: {1}'.format(channel_id, e.message))
                             continue
                         else:
-                            logger.info('Created alerts policy channel {0} for application {1}'.format(channel_id, nr_app_name))
+                            logger.info('Created alerts policy channel {0}'.format(channel_id))
 
                 if 'conditions' in policy:
-                    nr_alert_conditions = AlertsConditions()
+                    alerts_conditions_api = AlertsConditions()
+                    try:
+                        alerts_conditions = alerts_conditions_api.list(policy_id=policy_id)
+                    except Exception as e:
+                        logger.error('Failed to get alerts condition for {0}: {1}'.format(policy['name'], e.message))
+
                     for condition in policy['conditions']:
                         data = condition
                         data['entities'] = [nr_app_id]
-                        try:
-                            result = nr_alert_conditions.create(policy_id=new_policy_id, condition_data=data)
-                        except Exception as e:
-                            logger.error('Failed to create alerts condition {0} for application {1}: {2}'.format(data['name'], nr_app_name, e.message))
-                            continue
+                        existing_alerts_conditions = [i['id'] for i in alerts_conditions['conditions'] if i['name'] == condition['name']]
+
+                        if existing_alerts_conditions:
+                            try:
+                                result = alerts_conditions_api.update(condition_id=existing_alerts_conditions[0], condition_data=data)
+                            except Exception as e:
+                                logger.error('Failed to update alerts condition {0}: {1}'.format(data['name'], e.message))
+                                continue
+                            else:
+                                logger.info('Updated alerts condition {0} ID {1}'.format(data['name'], existing_alerts_conditions[0]))
                         else:
-                            logger.info('Created alerts condition {0} for application {1}'.format(data['name'], nr_app_name))
+                            try:
+                                result = alerts_conditions_api.create(policy_id=policy_id, condition_data=data)
+                            except Exception as e:
+                                logger.error('Failed to create alerts condition {0}: {1}'.format(data['name'], e.message))
+                                continue
+                            else:
+                                logger.info('Created alerts condition {0}'.format(data['name']))
 
         if 'settings' in spec['application']:
             try:
                 nr_applications.update(id=nr_app_id, **spec['application']['settings'])
             except Exception as e:
-                logger.error('Updating application {0} failed: {1}'.format(nr_app_name, e))
+                logger.error('Updating failed: {0}'.format(e))
             else:
-                logger.info('Update of application {0} with ID {1} completed'.format(nr_app_name, nr_app_id))
+                logger.info('Update of application with ID {0} completed'.format(nr_app_id))
 
         return

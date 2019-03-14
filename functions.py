@@ -154,7 +154,7 @@ def process_event(crds, obj, event_type):
                     logger.info('Failed to list alerts policies: {0}'.format(parse_api_error(e)))
                     return
                 else:
-                    logger.info('Found existing alerts policy with ID: {0}'.format(policy_id))
+                    logger.info('Found existing alerts policy with ID {0}'.format(policy_id))
 
                 if policy_id == None:
                     try:

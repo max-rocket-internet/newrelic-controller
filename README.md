@@ -1,6 +1,6 @@
 # Kubernetes newrelic-controller
 
-  <img src="https://raw.githubusercontent.com/max-rocket-internet/newrelic-controller/master/img/k8s-logo.png" width="100"> + <img src="https://raw.githubusercontent.com/max-rocket-internet/newrelic-controller/master/img/new-relic-logo.png" width="180">
+  <img src="https://raw.githubusercontent.com/max-rocket-internet/newrelic-controller/master/img/k8s-logo.png" width="100"><img src="https://raw.githubusercontent.com/max-rocket-internet/newrelic-controller/master/img/new-relic-logo.png" width="180">
 
 A simple k8s controller to update New Relic Application settings and Alert Policies.
 

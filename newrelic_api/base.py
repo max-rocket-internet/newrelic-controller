@@ -44,7 +44,7 @@ class Resource(object):
         """
         response = requests.get(*args, **kwargs)
         if not response.ok:
-            raise NewRelicAPIServerException('{}: {}'.format(response.status_code, response.text))
+            raise NewRelicAPIServerException(message=response.text, status_code=response.status_code)
 
         json_response = response.json()
 
@@ -68,7 +68,7 @@ class Resource(object):
             kwargs['data'] = json.dumps(kwargs['data'])
         response = requests.put(*args, **kwargs)
         if not response.ok:
-            raise NewRelicAPIServerException('{}: {}'.format(response.status_code, response.text))
+            raise NewRelicAPIServerException(message=response.text, status_code=response.status_code)
         return response.json()
 
     def _post(self, *args, **kwargs):
@@ -86,7 +86,7 @@ class Resource(object):
             kwargs['data'] = json.dumps(kwargs['data'])
         response = requests.post(*args, **kwargs)
         if not response.ok:
-            raise NewRelicAPIServerException('{}: {}'.format(response.status_code, response.text))
+            raise NewRelicAPIServerException(message=response.text, status_code=response.status_code)
         return response.json()
 
     def _delete(self, *args, **kwargs):
@@ -102,7 +102,7 @@ class Resource(object):
         """
         response = requests.delete(*args, **kwargs)
         if not response.ok:
-            raise NewRelicAPIServerException('{}: {}'.format(response.status_code, response.text))
+            raise NewRelicAPIServerException(message=response.text, status_code=response.status_code)
         return response.json()
 
     def build_param_string(self, params):

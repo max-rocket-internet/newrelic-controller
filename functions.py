@@ -120,7 +120,7 @@ def process_event(crds, obj, event_type):
                 try:
                     result = alerts_policies_api.delete(policy_id=policies['policies'][0]['id'])
                 except NewRelicAPIServerException as e:
-                    logger.error('Failed to delete alert policy {0}: {1}'.format(policy['name'], e.message))
+                    logger.error('Failed to delete alert policy {0}: {1}'.format(policy['name'], e.formatted_error))
                 except IndexError:
                     logger.error('Failed to delete alert policy {0}: no matching policy found'.format(policy['name']))
                 else:
@@ -131,7 +131,7 @@ def process_event(crds, obj, event_type):
             apps = nr_applications.list(filter_name=nr_app_name)
             nr_app_id = apps['applications'][0]['id']
         except NewRelicAPIServerException as e:
-            logger.error('Failed to get list of applications from New Relic: {0}'.format(e.message))
+            logger.error('Failed to get list of applications from New Relic: {0} {1}'.format(e.formatted_error))
             return
         except IndexError:
             logger.error('Failed to find application ID for {0}'.format(nr_app_name))
@@ -163,14 +163,16 @@ def process_event(crds, obj, event_type):
                     except Exception as e:
                         logger.info('Failed to create alerts policy: {0}'.format(parse_api_error(e)))
                         return
+                    else:
+                        logger.info('Created alerts policy {0}'.format(policy_id))
 
                 if 'channels' in policy:
                     alerts_policy_channels_api = AlertsPolicyChannels()
                     for channel_id in policy['channels']:
                         try:
                             alerts_policy_channels_api.create(policy_id=policy_id, channel_id=channel_id)
-                        except Exception as e:
-                            logger.error('Failed to create alerts policy channel {0}: {1}'.format(channel_id, e.message))
+                        except NewRelicAPIServerException as e:
+                            logger.error('Failed to create alerts policy channel {0}: {1}'.format(channel_id, e.formatted_error))
                             continue
                         else:
                             logger.info('Created alerts policy channel {0}'.format(channel_id))
@@ -178,28 +180,29 @@ def process_event(crds, obj, event_type):
                 if 'conditions' in policy:
                     alerts_conditions_api = AlertsConditions()
                     try:
-                        alerts_conditions = alerts_conditions_api.list(policy_id=policy_id)
-                    except Exception as e:
-                        logger.error('Failed to get alerts condition for {0}: {1}'.format(policy['name'], e.message))
+                        alerts_conditions = alerts_conditions_api.list_all(policy_id=policy_id)
+                    except NewRelicAPIServerException as e:
+                        logger.error('Failed to get alerts condition for {0}: {1}'.format(policy['name'], e.formatted_error))
+                        continue
 
                     for condition in policy['conditions']:
                         data = condition
                         data['entities'] = [nr_app_id]
-                        existing_alerts_conditions = [i['id'] for i in alerts_conditions['conditions'] if i['name'] == condition['name']]
+                        existing_alerts_conditions = [i['id'] for i in alerts_conditions if i['name'] == condition['name']]
 
                         if existing_alerts_conditions:
                             try:
                                 result = alerts_conditions_api.update(condition_id=existing_alerts_conditions[0], condition_data=data)
-                            except Exception as e:
-                                logger.error('Failed to update alerts condition {0}: {1}'.format(data['name'], e.message))
+                            except NewRelicAPIServerException as e:
+                                logger.error('Failed to update alerts condition {0}: {1}'.format(data['name'], e.formatted_error))
                                 continue
                             else:
                                 logger.info('Updated alerts condition {0} ID {1}'.format(data['name'], existing_alerts_conditions[0]))
                         else:
                             try:
                                 result = alerts_conditions_api.create(policy_id=policy_id, condition_data=data)
-                            except Exception as e:
-                                logger.error('Failed to create alerts condition {0}: {1}'.format(data['name'], e.message))
+                            except NewRelicAPIServerException as e:
+                                logger.error('Failed to create alerts condition {0}: {1}'.format(data['name'], e.formatted_error))
                                 continue
                             else:
                                 logger.info('Created alerts condition {0}'.format(data['name']))
@@ -207,8 +210,8 @@ def process_event(crds, obj, event_type):
         if 'settings' in spec['application']:
             try:
                 nr_applications.update(id=nr_app_id, **spec['application']['settings'])
-            except Exception as e:
-                logger.error('Updating failed: {0}'.format(e))
+            except NewRelicAPIServerException as e:
+                logger.error('Failed to update app {0}: {1}'.format(nr_app_name, e.formatted_error))
             else:
                 logger.info('Update of application with ID {0} completed'.format(nr_app_id))
 

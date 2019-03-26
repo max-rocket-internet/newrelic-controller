@@ -6,7 +6,7 @@ import logging
 import re
 import logging.handlers
 from kubernetes import config
-from newrelic_api import Applications, AlertsPolicies, AlertsConditions, AlertsPolicyChannels
+from newrelic_api import Applications, AlertsPolicies, AlertsConditions, AlertsPolicyChannels, ExternalServiceConditions
 from newrelic_api.exceptions import NewRelicAPIServerException
 
 
@@ -118,7 +118,7 @@ def process_event(crds, obj, event_type):
             for policy in spec['application']['alerts_policies']:
                 policies = alerts_policies_api.list(filter_name=policy['name'])
                 try:
-                    result = alerts_policies_api.delete(policy_id=policies['policies'][0]['id'])
+                    alerts_policies_api.delete(policy_id=policies['policies'][0]['id'])
                 except NewRelicAPIServerException as e:
                     logger.error('Failed to delete alert policy {0}: {1}'.format(policy['name'], e.formatted_error))
                 except IndexError:
@@ -131,7 +131,7 @@ def process_event(crds, obj, event_type):
             apps = nr_applications.list(filter_name=nr_app_name)
             nr_app_id = apps['applications'][0]['id']
         except NewRelicAPIServerException as e:
-            logger.error('Failed to get list of applications from New Relic: {0} {1}'.format(e.formatted_error))
+            logger.error('Failed to get list of applications from New Relic: {0}'.format(e.formatted_error))
             return
         except IndexError:
             logger.error('Failed to find application ID for {0}'.format(nr_app_name))
@@ -156,7 +156,7 @@ def process_event(crds, obj, event_type):
                 else:
                     logger.info('Found existing alerts policy with ID {0}'.format(policy_id))
 
-                if policy_id == None:
+                if policy_id is None:
                     try:
                         result = alerts_policies_api.create(name=policy['name'], incident_preference=policy['incident_preference'])
                         policy_id = result['policy']['id']
@@ -192,7 +192,7 @@ def process_event(crds, obj, event_type):
 
                         if existing_alerts_conditions:
                             try:
-                                result = alerts_conditions_api.update(condition_id=existing_alerts_conditions[0], condition_data=data)
+                                alerts_conditions_api.update(condition_id=existing_alerts_conditions[0], condition_data=data)
                             except NewRelicAPIServerException as e:
                                 logger.error('Failed to update alerts condition {0}: {1}'.format(data['name'], e.formatted_error))
                                 continue
@@ -200,13 +200,41 @@ def process_event(crds, obj, event_type):
                                 logger.info('Updated alerts condition {0} ID {1}'.format(data['name'], existing_alerts_conditions[0]))
                         else:
                             try:
-                                result = alerts_conditions_api.create(policy_id=policy_id, condition_data=data)
+                                alerts_conditions_api.create(policy_id=policy_id, condition_data=data)
                             except NewRelicAPIServerException as e:
                                 logger.error('Failed to create alerts condition {0}: {1}'.format(data['name'], e.formatted_error))
                                 continue
                             else:
                                 logger.info('Created alerts condition {0}'.format(data['name']))
+                if 'external_service_condition' in policy:
+                    external_service_conditions_api = ExternalServiceConditions()
+                    try:
+                        external_conditions = external_service_conditions_api.list(policy_id=policy_id)
+                    except NewRelicAPIServerException as e:
+                        logger.error('Failed to get alerts condition for {0}: {1}'.format(policy['name'], e.formatted_error))
+                        continue
 
+                    for condition in policy['external_service_condition']:
+                        data = condition
+                        data['entities'] = [nr_app_id]
+                        existing_alerts_conditions = [i['id'] for i in external_conditions if i['name'] == condition['name']]
+
+                        if existing_alerts_conditions:
+                            try:
+                                external_service_conditions_api.update(condition_id=existing_alerts_conditions[0], condition_data=data)
+                            except NewRelicAPIServerException as e:
+                                logger.error('Failed to update external service condition {0}: {1}'.format(data['name'], e.formatted_error))
+                                continue
+                            else:
+                                logger.info('Updated external service condition {0} ID {1}'.format(data['name'], existing_alerts_conditions[0]))
+                        else:
+                            try:
+                                external_service_conditions_api.create(policy_id=policy_id, condition_data=data)
+                            except NewRelicAPIServerException as e:
+                                logger.error('Failed to create external service condition {0}: {1}'.format(data['name'], e.formatted_error))
+                                continue
+                            else:
+                                logger.info('Created external service condition {0}'.format(data['name']))
         if 'settings' in spec['application']:
             try:
                 nr_applications.update(id=nr_app_id, **spec['application']['settings'])
@@ -214,5 +242,4 @@ def process_event(crds, obj, event_type):
                 logger.error('Failed to update app {0}: {1}'.format(nr_app_name, e.formatted_error))
             else:
                 logger.info('Update of application with ID {0} completed'.format(nr_app_id))
-
         return

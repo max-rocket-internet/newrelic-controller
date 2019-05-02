@@ -6,7 +6,7 @@ import logging
 import re
 import logging.handlers
 from kubernetes import config
-from newrelic_api import Applications, AlertsPolicies, AlertsConditions, AlertsPolicyChannels, ExternalServiceConditions
+from newrelic_api import Applications, AlertsPolicies, AlertsConditions, AlertsPolicyChannels, ExternalServiceConditions, Labels
 from newrelic_api.exceptions import NewRelicAPIServerException
 
 
@@ -242,4 +242,16 @@ def process_event(crds, obj, event_type):
                 logger.error('Failed to update app {0}: {1}'.format(nr_app_name, e.formatted_error))
             else:
                 logger.info('Update of application with ID {0} completed'.format(nr_app_id))
+
+        if 'labels' in spec['application']:
+            alerts_labels_api = Labels()
+
+            for label_name, label_value in spec['application']['labels'].items():
+                try:
+                    alerts_labels_api.create(applications=[nr_app_id], name=label_value, category=label_name)
+                except NewRelicAPIServerException as e:
+                    logger.error('Failed to update label {0}: {1}'.format(label_name, e.formatted_error))
+                else:
+                    logger.info('Update of label {0} done'.format(label_name))
+
         return

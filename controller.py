@@ -56,6 +56,7 @@ if __name__ == "__main__":
                 sys.exit(1)
             else:
                 raise e
+
         except KeyboardInterrupt:
             logger.info('newrelic-controller exiting')
             sys.exit(0)

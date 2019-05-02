@@ -1,0 +1,12 @@
+apiVersion: newrelic.com/v1
+kind: NewRelicSetting
+metadata:
+  name: app4
+spec:
+  application:
+    name: my-app4-in-new-relic
+    labels:
+      environment: staging
+      region: europe
+    settings:
+      app_apdex_threshold: 0.85

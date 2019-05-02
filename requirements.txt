@@ -1,2 +1,2 @@
-urllib3==1.23
-kubernetes==9.0.0b1
+urllib3>=1.24.2,<1.25
+kubernetes>=9.0.0

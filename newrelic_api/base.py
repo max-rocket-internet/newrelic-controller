@@ -69,7 +69,10 @@ class Resource(object):
         response = requests.put(*args, **kwargs)
         if not response.ok:
             raise NewRelicAPIServerException(message=response.text, status_code=response.status_code)
-        return response.json()
+        if response.status_code == 304:
+            return {'status_code': 304}
+        else:
+            return response.json()
 
     def _post(self, *args, **kwargs):
         """

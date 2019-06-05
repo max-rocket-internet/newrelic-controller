@@ -151,7 +151,7 @@ def process_event(crds, obj, event_type):
                 except IndexError:
                     logger.info('Alerts policy does not exist: {0}'.format(policy['name']))
                 except Exception as e:
-                    logger.info('Failed to list alerts policies: {0}'.format(parse_api_error(e)))
+                    logger.error('Failed to list alerts policies: {0}'.format(parse_api_error(e)))
                     return
                 else:
                     logger.info('Found existing alerts policy with ID {0}'.format(policy_id))
@@ -161,7 +161,7 @@ def process_event(crds, obj, event_type):
                         result = alerts_policies_api.create(name=policy['name'], incident_preference=policy['incident_preference'])
                         policy_id = result['policy']['id']
                     except Exception as e:
-                        logger.info('Failed to create alerts policy: {0}'.format(parse_api_error(e)))
+                        logger.error('Failed to create alerts policy: {0}'.format(parse_api_error(e)))
                         return
                     else:
                         logger.info('Created alerts policy {0}'.format(policy_id))

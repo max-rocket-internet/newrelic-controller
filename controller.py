@@ -45,7 +45,10 @@ if __name__ == "__main__":
                     resource_version = metadata['resourceVersion']
                     logger.debug('resourceVersion now: {0}'.format(resource_version))
 
-                process_event(crds, obj, event_type)
+                try:
+                    process_event(crds, obj, event_type)
+                except Exception as e:
+                    logger.error('Failed to process event, skipping {0}: {1}'.format(obj['metadata']['name'], e))
 
         except client.rest.ApiException as e:
             if e.status == 404:

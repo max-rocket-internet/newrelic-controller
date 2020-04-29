@@ -69,6 +69,8 @@ Use the included [Helm](https://helm.sh/) chart and set New Relic API key:
 helm install ./chart --set new_relic_api_key="aaaaabbbbbccccdddd"
 ```
 
+Or use the docker image: [maxrocketinternet/newrelic-controller](https://hub.docker.com/r/maxrocketinternet/newrelic-controller)
+
 ### Examples
 
 See [examples](examples).

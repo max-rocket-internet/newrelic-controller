@@ -29,8 +29,8 @@ The following table lists the configurable parameters for this chart and their d
 | `new_relic_api_key`                | Your New Relic Account API key            | `nil`                          |
 | `annotations`                      | Optional deployment annotations           | `{}`                           |
 | `affinity`                         | Map of node/pod affinities                | `{}`                           |
-| `image.repository`                 | Image                                     | `futurish/newrelic-controller` |
-| `image.tag`                        | Image tag                                 | `0.1`                          |
+| `image.repository`                 | Image                                     | `maxrocketinternet/newrelic-controller` |
+| `image.tag`                        | Image tag                                 | `0.8`                          |
 | `image.pullPolicy`                 | Image pull policy                         | `IfNotPresent`                 |
 | `rbac.create`                      | RBAC                                      | `true`                         |
 | `resources`                        | CPU limit                                 | `{}`                           |

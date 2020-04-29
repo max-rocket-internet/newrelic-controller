@@ -3,8 +3,8 @@ log_level: 'info'
 replicaCount: 1
 
 image:
-  repository: k8scontrollers/newrelic
-  tag: 0.6
+  repository: maxrocketinternet/newrelic-controller
+  tag: 0.8
   pullPolicy: IfNotPresent
 
 nameOverride: ""

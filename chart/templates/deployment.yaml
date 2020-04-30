@@ -11,6 +11,9 @@ metadata:
     helm.sh/chart: {{ include "newrelic-controller.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- if .Values.labels }}
+{{ toYaml .Values.labels | indent 4 }}
+{{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -24,6 +27,9 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app: {{ template "newrelic-controller.name" . }}
         release: {{ .Release.Name }}
+{{- if .Values.pod_labels }}
+{{ toYaml .Values.pod_labels | indent 8 }}
+{{- end }}
     spec:
       serviceAccountName: {{ template "newrelic-controller.serviceAccountName" . }}
       containers:
